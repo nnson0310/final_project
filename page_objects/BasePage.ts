@@ -160,4 +160,66 @@ export default class BasePage {
     protected async fillToElementInFrame(frameLocator: string, locator: string, inputValue: string) {
         await this.page.frameLocator(frameLocator).locator(locator).fill(inputValue);
     }
+
+    protected async waitForElementVisible(locator: string, timeout?: number) {
+        await this.page.locator(locator).waitFor({
+            state: 'visible',
+            timeout: timeout
+        })
+    }
+
+    protected async waitForElementHidden(locator: string, timeout?: number) {
+        await this.page.locator(locator).waitFor({
+            state: 'hidden',
+            timeout: timeout
+        })
+    }
+
+    protected async waitForElementPresent(locator: string, timeout?: number) {
+        await this.page.locator(locator).waitFor({
+            state: 'attached',
+            timeout: timeout
+        })
+    }
+
+    protected async waitForElementStale(locator: string, timeout?: number) {
+        await this.page.locator(locator).waitFor({
+            state: 'detached',
+            timeout: timeout 
+        })
+    }
+
+    protected async getTextOfAllElements(locator: string): Promise<string[]> {
+        const elements = await this.page.locator(locator).all();
+        const textOfElements: string[] = [];
+
+        for(let i = 0; i < elements.length; i++) {
+            textOfElements.push(await elements[i].innerText());
+        }
+
+        return textOfElements;
+    }
+
+    protected async waitForPageLoad(maxRetries: number) {
+        try {
+            await this.page.waitForSelector('html', { state: 'attached' });
+            await this.page.waitForLoadState('domcontentloaded');
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                const pageLoadStatus = await this.page.evaluate(() => document.readyState);
+    
+                if (pageLoadStatus === "complete") {
+                    return;
+                }
+
+                // wait for a bit
+                await this.page.waitForTimeout(500);
+            }
+           
+            console.warn('Page did not reach "complete" status within retries')
+        } catch (error) {
+            console.log('Error waiting for page load: ', error);
+        }
+    }
+
 }
